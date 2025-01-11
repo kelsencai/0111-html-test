@@ -99,6 +99,9 @@
       cursor: pointer;
       margin: 0 5px;
     }
+    .checkbox {
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -113,16 +116,21 @@
       </select>
       <button onclick="addTask()">添加任务</button>
     </div>
-    <ul class="task-list" id="taskList"></ul>
+    <h2>今天的任务</h2>
+    <ul class="task-list" id="todayTaskList"></ul>
     <div class="move-tomorrow">
-      <button onclick="moveTasksToTomorrow()">将今天的事项放到明天</button>
-      <button onclick="pullBackTasks()">将已放到明天的事项拉回来</button>
+      <button onclick="moveSelectedTasksToTomorrow()">将选中事项放到明天</button>
+    </div>
+    <h2>明天的任务</h2>
+    <ul class="task-list" id="tomorrowTaskList"></ul>
+    <div class="move-tomorrow">
+      <button onclick="moveSelectedTasksToToday()">将选中事项拉回今天</button>
     </div>
   </div>
 
   <script>
-    let tasks = [];
-    let movedTasks = []; // 存储已放到明天的事项
+    let todayTasks = [];
+    let tomorrowTasks = [];
 
     // 添加任务
     function addTask() {
@@ -132,7 +140,7 @@
       const difficulty = difficultyInput.value;
 
       if (taskText) {
-        tasks.push({ text: taskText, difficulty, completed: false });
+        todayTasks.push({ text: taskText, difficulty, completed: false });
         taskInput.value = '';
         renderTasks();
       }
@@ -140,27 +148,49 @@
 
     // 渲染任务列表
     function renderTasks() {
-      const taskList = document.getElementById('taskList');
-      taskList.innerHTML = tasks.map((task, index) => `
-        <li class="task-item ${task.completed ? 'completed' : ''}">
-          <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
-          <button onclick="toggleTask(${index})">${task.completed ? '取消' : '完成'}</button>
-        </li>
-      `).join('');
-
-      // 显示最难的任务
+      renderTodayTasks();
+      renderTomorrowTasks();
       showHardestTask();
     }
 
+    // 渲染今天的任务
+    function renderTodayTasks() {
+      const todayTaskList = document.getElementById('todayTaskList');
+      todayTaskList.innerHTML = todayTasks.map((task, index) => `
+        <li class="task-item ${task.completed ? 'completed' : ''}">
+          <input type="checkbox" class="checkbox" id="todayTask${index}">
+          <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
+          <button onclick="toggleTask('today', ${index})">${task.completed ? '取消' : '完成'}</button>
+        </li>
+      `).join('');
+    }
+
+    // 渲染明天的任务
+    function renderTomorrowTasks() {
+      const tomorrowTaskList = document.getElementById('tomorrowTaskList');
+      tomorrowTaskList.innerHTML = tomorrowTasks.map((task, index) => `
+        <li class="task-item ${task.completed ? 'completed' : ''}">
+          <input type="checkbox" class="checkbox" id="tomorrowTask${index}">
+          <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
+          <button onclick="toggleTask('tomorrow', ${index})">${task.completed ? '取消' : '完成'}</button>
+        </li>
+      `).join('');
+    }
+
     // 切换任务状态
-    function toggleTask(index) {
-      tasks[index].completed = !tasks[index].completed;
+    function toggleTask(listType, index) {
+      if (listType === 'today') {
+        todayTasks[index].completed = !todayTasks[index].completed;
+      } else {
+        tomorrowTasks[index].completed = !tomorrowTasks[index].completed;
+      }
       renderTasks();
     }
 
     // 显示最难的任务
     function showHardestTask() {
-      const hardestTask = tasks
+      const allTasks = todayTasks.concat(tomorrowTasks);
+      const hardestTask = allTasks
         .filter(task => !task.completed)
         .reduce((hardest, task) => {
           if (task.difficulty === 'hard') return task;
@@ -172,17 +202,31 @@
       }
     }
 
-    // 将今天的事项放到明天
-    function moveTasksToTomorrow() {
-      movedTasks = tasks.filter(task => !task.completed); // 存储未完成的任务
-      tasks = tasks.filter(task => task.completed); // 只保留已完成的任务
+    // 将选中事项放到明天
+    function moveSelectedTasksToTomorrow() {
+      const selectedTasks = todayTasks.filter((task, index) => {
+        const checkbox = document.getElementById(`todayTask${index}`);
+        return checkbox.checked;
+      });
+      todayTasks = todayTasks.filter((task, index) => {
+        const checkbox = document.getElementById(`todayTask${index}`);
+        return !checkbox.checked;
+      });
+      tomorrowTasks = tomorrowTasks.concat(selectedTasks);
       renderTasks();
     }
 
-    // 将已放到明天的事项拉回来
-    function pullBackTasks() {
-      tasks = tasks.concat(movedTasks); // 将已放到明天的事项拉回来
-      movedTasks = []; // 清空已放到明天的事项
+    // 将选中事项拉回今天
+    function moveSelectedTasksToToday() {
+      const selectedTasks = tomorrowTasks.filter((task, index) => {
+        const checkbox = document.getElementById(`tomorrowTask${index}`);
+        return checkbox.checked;
+      });
+      tomorrowTasks = tomorrowTasks.filter((task, index) => {
+        const checkbox = document.getElementById(`tomorrowTask${index}`);
+        return !checkbox.checked;
+      });
+      todayTasks = todayTasks.concat(selectedTasks);
       renderTasks();
     }
   </script>
