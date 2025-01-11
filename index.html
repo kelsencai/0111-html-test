@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高级时间管理工具</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    .task-input {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .task-input input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    .task-input button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: #ffdd57;
+      color: #1e3c72;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .task-list {
+      list-style: none;
+      padding: 0;
+    }
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .task-item.completed {
+      opacity: 0.6;
+      text-decoration: line-through;
+    }
+    .task-item button {
+      background: #ff6b6b;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .timer {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .timer-display {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    .timer button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: #4caf50;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    .progress {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #4caf50;
+      width: 0;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <h1>高级时间管理工具</h1>
+  <div class="container">
+    <div class="task-input">
+      <input type="text" id="taskInput" placeholder="输入新任务">
+      <button onclick="addTask()">添加任务</button>
+    </div>
+    <ul class="task-list" id="taskList"></ul>
+    <div class="timer">
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <button onclick="startTimer()">开始</button>
+      <button onclick="pauseTimer()">暂停</button>
+      <button onclick="resetTimer()">重置</button>
+    </div>
+    <div class="progress">
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <p>任务完成进度：<span id="progressText">0%</span></p>
+    </div>
+  </div>
+
+  <script>
+    let tasks = [];
+    let timerInterval;
+    let timerSeconds = 0;
+    let isTimerRunning = false;
+
+    // 添加任务
+    function addTask() {
+      const taskInput = document.getElementById('taskInput');
+      const taskText = taskInput.value.trim();
+      if (taskText) {
+        tasks.push({ text: taskText, completed: false });
+        taskInput.value = '';
+        renderTasks();
+        updateProgress();
+      }
+    }
+
+    // 渲染任务列表
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = tasks.map((task, index) => `
+        <li class="task-item ${task.completed ? 'completed' : ''}">
+          <span>${task.text}</span>
+          <button onclick="toggleTask(${index})">${task.completed ? '取消' : '完成'}</button>
+        </li>
+      `).join('');
+    }
+
+    // 切换任务状态
+    function toggleTask(index) {
+      tasks[index].completed = !tasks[index].completed;
+      renderTasks();
+      updateProgress();
+    }
+
+    // 更新进度
+    function updateProgress() {
+      const completedTasks = tasks.filter(task => task.completed).length;
+      const totalTasks = tasks.length;
+      const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+      document.getElementById('progressBar').style.width = `${progress}%`;
+      document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+    }
+
+    // 计时器逻辑
+    function startTimer() {
+      if (!isTimerRunning) {
+        isTimerRunning = true;
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          updateTimerDisplay();
+        }, 1000);
+      }
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerSeconds = 0;
+      isTimerRunning = false;
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const hours = Math.floor(timerSeconds / 3600);
+      const minutes = Math.floor((timerSeconds % 3600) / 60);
+      const seconds = timerSeconds % 60;
+      document.getElementById('timerDisplay').textContent =
+        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+  </script>
+</body>
+</html>
