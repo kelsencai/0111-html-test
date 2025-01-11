@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>高级时间管理工具</title>
+  <title>任务管理工具</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -36,6 +36,12 @@
     }
     .task-input input {
       flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    .task-input select {
       padding: 10px;
       border: none;
       border-radius: 5px;
@@ -75,15 +81,15 @@
       padding: 5px 10px;
       cursor: pointer;
     }
-    .timer {
-      text-align: center;
+    .difficulty {
+      font-weight: bold;
+      color: #ffdd57;
+    }
+    .move-tomorrow {
       margin-top: 20px;
+      text-align: center;
     }
-    .timer-display {
-      font-size: 2rem;
-      margin-bottom: 10px;
-    }
-    .timer button {
+    .move-tomorrow button {
       padding: 10px 20px;
       border: none;
       border-radius: 5px;
@@ -93,62 +99,42 @@
       cursor: pointer;
       margin: 0 5px;
     }
-    .progress {
-      margin-top: 20px;
-      text-align: center;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: #4caf50;
-      width: 0;
-      transition: width 0.3s ease;
-    }
   </style>
 </head>
 <body>
-  <h1>高级时间管理工具</h1>
+  <h1>任务管理工具</h1>
   <div class="container">
     <div class="task-input">
       <input type="text" id="taskInput" placeholder="输入新任务">
+      <select id="difficultyInput">
+        <option value="easy">简单</option>
+        <option value="medium">中等</option>
+        <option value="hard">困难</option>
+      </select>
       <button onclick="addTask()">添加任务</button>
     </div>
     <ul class="task-list" id="taskList"></ul>
-    <div class="timer">
-      <div class="timer-display" id="timerDisplay">00:00:00</div>
-      <button onclick="startTimer()">开始</button>
-      <button onclick="pauseTimer()">暂停</button>
-      <button onclick="resetTimer()">重置</button>
-    </div>
-    <div class="progress">
-      <div class="progress-bar">
-        <div class="progress-bar-fill" id="progressBar"></div>
-      </div>
-      <p>任务完成进度：<span id="progressText">0%</span></p>
+    <div class="move-tomorrow">
+      <button onclick="moveTasksToTomorrow()">将今天的事项放到明天</button>
+      <button onclick="pullBackTasks()">将已放到明天的事项拉回来</button>
     </div>
   </div>
 
   <script>
     let tasks = [];
-    let timerInterval;
-    let timerSeconds = 0;
-    let isTimerRunning = false;
+    let movedTasks = []; // 存储已放到明天的事项
 
     // 添加任务
     function addTask() {
       const taskInput = document.getElementById('taskInput');
+      const difficultyInput = document.getElementById('difficultyInput');
       const taskText = taskInput.value.trim();
+      const difficulty = difficultyInput.value;
+
       if (taskText) {
-        tasks.push({ text: taskText, completed: false });
+        tasks.push({ text: taskText, difficulty, completed: false });
         taskInput.value = '';
         renderTasks();
-        updateProgress();
       }
     }
 
@@ -157,57 +143,47 @@
       const taskList = document.getElementById('taskList');
       taskList.innerHTML = tasks.map((task, index) => `
         <li class="task-item ${task.completed ? 'completed' : ''}">
-          <span>${task.text}</span>
+          <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
           <button onclick="toggleTask(${index})">${task.completed ? '取消' : '完成'}</button>
         </li>
       `).join('');
+
+      // 显示最难的任务
+      showHardestTask();
     }
 
     // 切换任务状态
     function toggleTask(index) {
       tasks[index].completed = !tasks[index].completed;
       renderTasks();
-      updateProgress();
     }
 
-    // 更新进度
-    function updateProgress() {
-      const completedTasks = tasks.filter(task => task.completed).length;
-      const totalTasks = tasks.length;
-      const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-      document.getElementById('progressBar').style.width = `${progress}%`;
-      document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
-    }
+    // 显示最难的任务
+    function showHardestTask() {
+      const hardestTask = tasks
+        .filter(task => !task.completed)
+        .reduce((hardest, task) => {
+          if (task.difficulty === 'hard') return task;
+          return hardest;
+        }, null);
 
-    // 计时器逻辑
-    function startTimer() {
-      if (!isTimerRunning) {
-        isTimerRunning = true;
-        timerInterval = setInterval(() => {
-          timerSeconds++;
-          updateTimerDisplay();
-        }, 1000);
+      if (hardestTask) {
+        alert(`最难的任务是：${hardestTask.text}`);
       }
     }
 
-    function pauseTimer() {
-      clearInterval(timerInterval);
-      isTimerRunning = false;
+    // 将今天的事项放到明天
+    function moveTasksToTomorrow() {
+      movedTasks = tasks.filter(task => !task.completed); // 存储未完成的任务
+      tasks = tasks.filter(task => task.completed); // 只保留已完成的任务
+      renderTasks();
     }
 
-    function resetTimer() {
-      clearInterval(timerInterval);
-      timerSeconds = 0;
-      isTimerRunning = false;
-      updateTimerDisplay();
-    }
-
-    function updateTimerDisplay() {
-      const hours = Math.floor(timerSeconds / 3600);
-      const minutes = Math.floor((timerSeconds % 3600) / 60);
-      const seconds = timerSeconds % 60;
-      document.getElementById('timerDisplay').textContent =
-        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    // 将已放到明天的事项拉回来
+    function pullBackTasks() {
+      tasks = tasks.concat(movedTasks); // 将已放到明天的事项拉回来
+      movedTasks = []; // 清空已放到明天的事项
+      renderTasks();
     }
   </script>
 </body>
