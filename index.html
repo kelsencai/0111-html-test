@@ -29,6 +29,25 @@
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
       backdrop-filter: blur(10px);
     }
+    .login {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .login input {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    .login button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: #ffdd57;
+      color: #1e3c72;
+      font-size: 1rem;
+      cursor: pointer;
+    }
     .task-input {
       display: flex;
       gap: 10px;
@@ -126,36 +145,68 @@
 <body>
   <h1>任务管理工具</h1>
   <div class="container">
-    <div class="task-input">
-      <input type="text" id="taskInput" placeholder="输入新任务">
-      <select id="difficultyInput">
-        <option value="easy">简单</option>
-        <option value="medium">中等</option>
-        <option value="hard">困难</option>
-      </select>
-      <button onclick="addTask()">添加任务</button>
+    <div class="login">
+      <input type="text" id="usernameInput" placeholder="输入用户名">
+      <button onclick="login()">登录</button>
     </div>
-    <div class="filter">
-      <button onclick="filterTasks('starred')">显示星标任务</button>
-      <button onclick="filterTasks('uncompleted')">显示未完成任务</button>
-      <button onclick="filterTasks('all')">显示所有任务</button>
-    </div>
-    <h2>今天的任务</h2>
-    <ul class="task-list" id="todayTaskList"></ul>
-    <div class="move-tomorrow">
-      <button onclick="moveSelectedTasksToTomorrow()">将选中事项放到明天</button>
-    </div>
-    <h2>明天的任务</h2>
-    <ul class="task-list" id="tomorrowTaskList"></ul>
-    <div class="move-tomorrow">
-      <button onclick="moveSelectedTasksToToday()">将选中事项拉回今天</button>
+    <div id="taskManager" style="display: none;">
+      <div class="task-input">
+        <input type="text" id="taskInput" placeholder="输入新任务">
+        <select id="difficultyInput">
+          <option value="easy">简单</option>
+          <option value="medium">中等</option>
+          <option value="hard">困难</option>
+        </select>
+        <button onclick="addTask()">添加任务</button>
+      </div>
+      <div class="filter">
+        <button onclick="filterTasks('starred')">显示星标任务</button>
+        <button onclick="filterTasks('uncompleted')">显示未完成任务</button>
+        <button onclick="filterTasks('all')">显示所有任务</button>
+      </div>
+      <h2>今天的任务</h2>
+      <ul class="task-list" id="todayTaskList"></ul>
+      <div class="move-tomorrow">
+        <button onclick="moveSelectedTasksToTomorrow()">将选中事项放到明天</button>
+      </div>
+      <h2>明天的任务</h2>
+      <ul class="task-list" id="tomorrowTaskList"></ul>
+      <div class="move-tomorrow">
+        <button onclick="moveSelectedTasksToToday()">将选中事项拉回今天</button>
+      </div>
     </div>
   </div>
 
   <script>
+    let currentUser = null;
     let todayTasks = [];
     let tomorrowTasks = [];
-    let currentFilter = 'all'; // 当前过滤器状态
+    let currentFilter = 'all';
+
+    // 用户登录
+    function login() {
+      const username = document.getElementById('usernameInput').value.trim();
+      if (username) {
+        currentUser = username;
+        loadUserData();
+        document.getElementById('taskManager').style.display = 'block';
+        document.getElementById('usernameInput').value = '';
+      }
+    }
+
+    // 加载用户数据
+    function loadUserData() {
+      const userData = JSON.parse(localStorage.getItem(currentUser)) || { todayTasks: [], tomorrowTasks: [] };
+      todayTasks = userData.todayTasks;
+      tomorrowTasks = userData.tomorrowTasks;
+      renderTasks();
+    }
+
+    // 保存用户数据
+    function saveUserData() {
+      const userData = { todayTasks, tomorrowTasks };
+      localStorage.setItem(currentUser, JSON.stringify(userData));
+    }
 
     // 添加任务
     function addTask() {
@@ -167,6 +218,7 @@
       if (taskText) {
         todayTasks.push({ text: taskText, difficulty, completed: false, starred: false });
         taskInput.value = '';
+        saveUserData();
         renderTasks();
       }
     }
@@ -225,6 +277,7 @@
       } else {
         tomorrowTasks[index].completed = !tomorrowTasks[index].completed;
       }
+      saveUserData();
       renderTasks();
     }
 
@@ -235,6 +288,7 @@
       } else {
         tomorrowTasks[index].starred = !tomorrowTasks[index].starred;
       }
+      saveUserData();
       renderTasks();
     }
 
@@ -264,6 +318,7 @@
         return !checkbox.checked;
       });
       tomorrowTasks = tomorrowTasks.concat(selectedTasks);
+      saveUserData();
       renderTasks();
     }
 
@@ -278,6 +333,7 @@
         return !checkbox.checked;
       });
       todayTasks = todayTasks.concat(selectedTasks);
+      saveUserData();
       renderTasks();
     }
 
