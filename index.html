@@ -102,6 +102,25 @@
     .checkbox {
       margin-right: 10px;
     }
+    .star {
+      color: #ffdd57;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .filter {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .filter button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: #4caf50;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 5px;
+    }
   </style>
 </head>
 <body>
@@ -115,6 +134,11 @@
         <option value="hard">困难</option>
       </select>
       <button onclick="addTask()">添加任务</button>
+    </div>
+    <div class="filter">
+      <button onclick="filterTasks('starred')">显示星标任务</button>
+      <button onclick="filterTasks('uncompleted')">显示未完成任务</button>
+      <button onclick="filterTasks('all')">显示所有任务</button>
     </div>
     <h2>今天的任务</h2>
     <ul class="task-list" id="todayTaskList"></ul>
@@ -131,6 +155,7 @@
   <script>
     let todayTasks = [];
     let tomorrowTasks = [];
+    let currentFilter = 'all'; // 当前过滤器状态
 
     // 添加任务
     function addTask() {
@@ -140,7 +165,7 @@
       const difficulty = difficultyInput.value;
 
       if (taskText) {
-        todayTasks.push({ text: taskText, difficulty, completed: false });
+        todayTasks.push({ text: taskText, difficulty, completed: false, starred: false });
         taskInput.value = '';
         renderTasks();
       }
@@ -156,9 +181,11 @@
     // 渲染今天的任务
     function renderTodayTasks() {
       const todayTaskList = document.getElementById('todayTaskList');
-      todayTaskList.innerHTML = todayTasks.map((task, index) => `
+      const filteredTasks = filterTaskList(todayTasks);
+      todayTaskList.innerHTML = filteredTasks.map((task, index) => `
         <li class="task-item ${task.completed ? 'completed' : ''}">
           <input type="checkbox" class="checkbox" id="todayTask${index}">
+          <span class="star" onclick="toggleStar('today', ${index})">${task.starred ? '★' : '☆'}</span>
           <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
           <button onclick="toggleTask('today', ${index})">${task.completed ? '取消' : '完成'}</button>
         </li>
@@ -168,13 +195,27 @@
     // 渲染明天的任务
     function renderTomorrowTasks() {
       const tomorrowTaskList = document.getElementById('tomorrowTaskList');
-      tomorrowTaskList.innerHTML = tomorrowTasks.map((task, index) => `
+      const filteredTasks = filterTaskList(tomorrowTasks);
+      tomorrowTaskList.innerHTML = filteredTasks.map((task, index) => `
         <li class="task-item ${task.completed ? 'completed' : ''}">
           <input type="checkbox" class="checkbox" id="tomorrowTask${index}">
+          <span class="star" onclick="toggleStar('tomorrow', ${index})">${task.starred ? '★' : '☆'}</span>
           <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
           <button onclick="toggleTask('tomorrow', ${index})">${task.completed ? '取消' : '完成'}</button>
         </li>
       `).join('');
+    }
+
+    // 过滤任务列表
+    function filterTaskList(tasks) {
+      switch (currentFilter) {
+        case 'starred':
+          return tasks.filter(task => task.starred && !task.completed);
+        case 'uncompleted':
+          return tasks.filter(task => !task.completed);
+        default:
+          return tasks;
+      }
     }
 
     // 切换任务状态
@@ -183,6 +224,16 @@
         todayTasks[index].completed = !todayTasks[index].completed;
       } else {
         tomorrowTasks[index].completed = !tomorrowTasks[index].completed;
+      }
+      renderTasks();
+    }
+
+    // 切换星标状态
+    function toggleStar(listType, index) {
+      if (listType === 'today') {
+        todayTasks[index].starred = !todayTasks[index].starred;
+      } else {
+        tomorrowTasks[index].starred = !tomorrowTasks[index].starred;
       }
       renderTasks();
     }
@@ -227,6 +278,12 @@
         return !checkbox.checked;
       });
       todayTasks = todayTasks.concat(selectedTasks);
+      renderTasks();
+    }
+
+    // 过滤任务
+    function filterTasks(filterType) {
+      currentFilter = filterType;
       renderTasks();
     }
   </script>
