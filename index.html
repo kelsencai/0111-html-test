@@ -6,9 +6,9 @@
   <title>任务管理工具</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fbc2eb, #a6c1ee, #f6d365, #fda085);
+      color: #333;
       margin: 0;
       padding: 20px;
       display: flex;
@@ -19,9 +19,11 @@
     h1 {
       font-size: 2.5rem;
       margin-bottom: 20px;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
     .container {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.8);
       border-radius: 15px;
       padding: 20px;
       width: 90%;
@@ -38,13 +40,15 @@
       border: none;
       border-radius: 5px;
       font-size: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
     }
     .login button {
       padding: 10px 20px;
       border: none;
       border-radius: 5px;
-      background: #ffdd57;
-      color: #1e3c72;
+      background: #ff6f61;
+      color: #fff;
       font-size: 1rem;
       cursor: pointer;
     }
@@ -59,19 +63,23 @@
       border: none;
       border-radius: 5px;
       font-size: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
     }
     .task-input select {
       padding: 10px;
       border: none;
       border-radius: 5px;
       font-size: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
     }
     .task-input button {
       padding: 10px 20px;
       border: none;
       border-radius: 5px;
-      background: #ffdd57;
-      color: #1e3c72;
+      background: #ff6f61;
+      color: #fff;
       font-size: 1rem;
       cursor: pointer;
     }
@@ -84,16 +92,17 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
       margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     .task-item.completed {
       opacity: 0.6;
       text-decoration: line-through;
     }
     .task-item button {
-      background: #ff6b6b;
+      background: #ff3b30;
       border: none;
       border-radius: 5px;
       color: #fff;
@@ -102,7 +111,7 @@
     }
     .difficulty {
       font-weight: bold;
-      color: #ffdd57;
+      color: #ff6f61;
     }
     .move-tomorrow {
       margin-top: 20px;
@@ -112,7 +121,7 @@
       padding: 10px 20px;
       border: none;
       border-radius: 5px;
-      background: #4caf50;
+      background: #34c759;
       color: #fff;
       font-size: 1rem;
       cursor: pointer;
@@ -122,7 +131,7 @@
       margin-right: 10px;
     }
     .star {
-      color: #ffdd57;
+      color: #ffcc00;
       cursor: pointer;
       margin-right: 10px;
     }
@@ -134,11 +143,31 @@
       padding: 10px 20px;
       border: none;
       border-radius: 5px;
-      background: #4caf50;
+      background: #007aff;
       color: #fff;
       font-size: 1rem;
       cursor: pointer;
       margin: 0 5px;
+    }
+    .date-header {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin: 20px 0 10px;
+      color: #333;
+    }
+    .date-navigation {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .date-navigation button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: #007aff;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -150,6 +179,10 @@
       <button onclick="login()">登录</button>
     </div>
     <div id="taskManager" style="display: none;">
+      <div class="date-navigation">
+        <button onclick="changeDate(-1)">前一天</button>
+        <button onclick="changeDate(1)">后一天</button>
+      </div>
       <div class="task-input">
         <input type="text" id="taskInput" placeholder="输入新任务">
         <select id="difficultyInput">
@@ -164,24 +197,25 @@
         <button onclick="filterTasks('uncompleted')">显示未完成任务</button>
         <button onclick="filterTasks('all')">显示所有任务</button>
       </div>
-      <h2>今天的任务</h2>
-      <ul class="task-list" id="todayTaskList"></ul>
+      <div id="taskLists"></div>
       <div class="move-tomorrow">
         <button onclick="moveSelectedTasksToTomorrow()">将选中事项放到明天</button>
-      </div>
-      <h2>明天的任务</h2>
-      <ul class="task-list" id="tomorrowTaskList"></ul>
-      <div class="move-tomorrow">
-        <button onclick="moveSelectedTasksToToday()">将选中事项拉回今天</button>
       </div>
     </div>
   </div>
 
   <script>
     let currentUser = null;
-    let todayTasks = [];
-    let tomorrowTasks = [];
+    let tasksByDate = {}; // 按日期存储任务
     let currentFilter = 'all';
+    let currentDateOffset = 0; // 当前日期偏移量（0 表示今天）
+
+    // 获取日期字符串
+    function getDateString(offset = 0) {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return date.toISOString().split('T')[0];
+    }
 
     // 用户登录
     function login() {
@@ -191,20 +225,19 @@
         loadUserData();
         document.getElementById('taskManager').style.display = 'block';
         document.getElementById('usernameInput').value = '';
+        renderTasks();
       }
     }
 
     // 加载用户数据
     function loadUserData() {
-      const userData = JSON.parse(localStorage.getItem(currentUser)) || { todayTasks: [], tomorrowTasks: [] };
-      todayTasks = userData.todayTasks;
-      tomorrowTasks = userData.tomorrowTasks;
-      renderTasks();
+      const userData = JSON.parse(localStorage.getItem(currentUser)) || {};
+      tasksByDate = userData.tasksByDate || {};
     }
 
     // 保存用户数据
     function saveUserData() {
-      const userData = { todayTasks, tomorrowTasks };
+      const userData = { tasksByDate };
       localStorage.setItem(currentUser, JSON.stringify(userData));
     }
 
@@ -216,7 +249,11 @@
       const difficulty = difficultyInput.value;
 
       if (taskText) {
-        todayTasks.push({ text: taskText, difficulty, completed: false, starred: false });
+        const today = getDateString(currentDateOffset);
+        if (!tasksByDate[today]) {
+          tasksByDate[today] = [];
+        }
+        tasksByDate[today].push({ text: taskText, difficulty, completed: false, starred: false });
         taskInput.value = '';
         saveUserData();
         renderTasks();
@@ -225,37 +262,39 @@
 
     // 渲染任务列表
     function renderTasks() {
-      renderTodayTasks();
-      renderTomorrowTasks();
-      showHardestTask();
+      const taskLists = document.getElementById('taskLists');
+      taskLists.innerHTML = '';
+
+      const date = getDateString(currentDateOffset);
+      const tasks = tasksByDate[date] || [];
+      const filteredTasks = filterTaskList(tasks);
+
+      if (filteredTasks.length > 0) {
+        const dateHeader = document.createElement('div');
+        dateHeader.className = 'date-header';
+        dateHeader.textContent = formatDateLabel(currentDateOffset);
+        taskLists.appendChild(dateHeader);
+
+        const taskList = document.createElement('ul');
+        taskList.className = 'task-list';
+        taskList.innerHTML = filteredTasks.map((task, index) => `
+          <li class="task-item ${task.completed ? 'completed' : ''}">
+            <input type="checkbox" class="checkbox" id="task${date}-${index}">
+            <span class="star" onclick="toggleStar('${date}', ${index})">${task.starred ? '★' : '☆'}</span>
+            <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
+            <button onclick="toggleTask('${date}', ${index})">${task.completed ? '取消' : '完成'}</button>
+          </li>
+        `).join('');
+        taskLists.appendChild(taskList);
+      }
     }
 
-    // 渲染今天的任务
-    function renderTodayTasks() {
-      const todayTaskList = document.getElementById('todayTaskList');
-      const filteredTasks = filterTaskList(todayTasks);
-      todayTaskList.innerHTML = filteredTasks.map((task, index) => `
-        <li class="task-item ${task.completed ? 'completed' : ''}">
-          <input type="checkbox" class="checkbox" id="todayTask${index}">
-          <span class="star" onclick="toggleStar('today', ${index})">${task.starred ? '★' : '☆'}</span>
-          <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
-          <button onclick="toggleTask('today', ${index})">${task.completed ? '取消' : '完成'}</button>
-        </li>
-      `).join('');
-    }
-
-    // 渲染明天的任务
-    function renderTomorrowTasks() {
-      const tomorrowTaskList = document.getElementById('tomorrowTaskList');
-      const filteredTasks = filterTaskList(tomorrowTasks);
-      tomorrowTaskList.innerHTML = filteredTasks.map((task, index) => `
-        <li class="task-item ${task.completed ? 'completed' : ''}">
-          <input type="checkbox" class="checkbox" id="tomorrowTask${index}">
-          <span class="star" onclick="toggleStar('tomorrow', ${index})">${task.starred ? '★' : '☆'}</span>
-          <span>${task.text} <span class="difficulty">(${task.difficulty})</span></span>
-          <button onclick="toggleTask('tomorrow', ${index})">${task.completed ? '取消' : '完成'}</button>
-        </li>
-      `).join('');
+    // 格式化日期标签
+    function formatDateLabel(offset) {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return date.toLocaleDateString('zh-CN', options);
     }
 
     // 过滤任务列表
@@ -271,68 +310,36 @@
     }
 
     // 切换任务状态
-    function toggleTask(listType, index) {
-      if (listType === 'today') {
-        todayTasks[index].completed = !todayTasks[index].completed;
-      } else {
-        tomorrowTasks[index].completed = !tomorrowTasks[index].completed;
-      }
+    function toggleTask(date, index) {
+      tasksByDate[date][index].completed = !tasksByDate[date][index].completed;
       saveUserData();
       renderTasks();
     }
 
     // 切换星标状态
-    function toggleStar(listType, index) {
-      if (listType === 'today') {
-        todayTasks[index].starred = !todayTasks[index].starred;
-      } else {
-        tomorrowTasks[index].starred = !tomorrowTasks[index].starred;
-      }
+    function toggleStar(date, index) {
+      tasksByDate[date][index].starred = !tasksByDate[date][index].starred;
       saveUserData();
       renderTasks();
-    }
-
-    // 显示最难的任务
-    function showHardestTask() {
-      const allTasks = todayTasks.concat(tomorrowTasks);
-      const hardestTask = allTasks
-        .filter(task => !task.completed)
-        .reduce((hardest, task) => {
-          if (task.difficulty === 'hard') return task;
-          return hardest;
-        }, null);
-
-      if (hardestTask) {
-        alert(`最难的任务是：${hardestTask.text}`);
-      }
     }
 
     // 将选中事项放到明天
     function moveSelectedTasksToTomorrow() {
-      const selectedTasks = todayTasks.filter((task, index) => {
-        const checkbox = document.getElementById(`todayTask${index}`);
-        return checkbox.checked;
-      });
-      todayTasks = todayTasks.filter((task, index) => {
-        const checkbox = document.getElementById(`todayTask${index}`);
-        return !checkbox.checked;
-      });
-      tomorrowTasks = tomorrowTasks.concat(selectedTasks);
-      saveUserData();
-      renderTasks();
-    }
+      const today = getDateString(currentDateOffset);
+      const tomorrow = getDateString(currentDateOffset + 1);
+      if (!tasksByDate[tomorrow]) {
+        tasksByDate[tomorrow] = [];
+      }
 
-    // 将选中事项拉回今天
-    function moveSelectedTasksToToday() {
-      const selectedTasks = tomorrowTasks.filter((task, index) => {
-        const checkbox = document.getElementById(`tomorrowTask${index}`);
+      const selectedTasks = tasksByDate[today].filter((task, index) => {
+        const checkbox = document.getElementById(`task${today}-${index}`);
         return checkbox.checked;
       });
-      tomorrowTasks = tomorrowTasks.filter((task, index) => {
-        const checkbox = document.getElementById(`tomorrowTask${index}`);
+      tasksByDate[today] = tasksByDate[today].filter((task, index) => {
+        const checkbox = document.getElementById(`task${today}-${index}`);
         return !checkbox.checked;
       });
-      todayTasks = todayTasks.concat(selectedTasks);
+      tasksByDate[tomorrow] = tasksByDate[tomorrow].concat(selectedTasks);
       saveUserData();
       renderTasks();
     }
@@ -340,6 +347,12 @@
     // 过滤任务
     function filterTasks(filterType) {
       currentFilter = filterType;
+      renderTasks();
+    }
+
+    // 切换日期
+    function changeDate(offset) {
+      currentDateOffset += offset;
       renderTasks();
     }
   </script>
